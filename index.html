@@ -267,79 +267,6 @@
             background: #764ba2;
         }
 
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(5px);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 400px;
-            width: 90%;
-            animation: modalSlide 0.3s ease-out;
-        }
-
-        @keyframes modalSlide {
-            from {
-                opacity: 0;
-                transform: translateY(-50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .modal-content h2 {
-            margin-bottom: 20px;
-            color: #333;
-            text-align: center;
-        }
-
-        .modal-content input {
-            width: 100%;
-            padding: 14px;
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-
-        .modal-content input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .modal-content button {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
         .user-list-toggle-btn {
             display: none; /* Oculto em telas grandes */
             background: none;
@@ -348,11 +275,6 @@
             font-size: 28px;
             cursor: pointer;
             line-height: 1;
-        }
-
-        .modal-content button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
         }
 
         /* Responsive */
@@ -390,15 +312,6 @@
     </style>
 </head>
 <body>
-    <!-- Modal de Apelido -->
-    <div class="modal active" id="nickname-modal">
-        <div class="modal-content">
-            <h2>👋 Bem-vindo ao Chat!</h2>
-            <input type="text" id="nickname-input" placeholder="Digite seu apelido..." maxlength="20">
-            <button id="nickname-submit">Entrar</button>
-        </div>
-    </div>
-
     <div id="app-container">
         <div id="chat-window">
             <div class="chat-header">
@@ -435,47 +348,50 @@
         const messages = document.getElementById('messages');
         const userList = document.getElementById('user-list');
         const onlineCount = document.getElementById('online-count');
-        const modal = document.getElementById('nickname-modal');
-        const nicknameInput = document.getElementById('nickname-input');
-        const nicknameSubmit = document.getElementById('nickname-submit');
         const userListContainer = document.getElementById('user-list-container');
         const userListToggle = document.getElementById('user-list-toggle');
         const overlay = document.getElementById('overlay');
         
         let apelido = '';
 
-        // Entrada do apelido
-        nicknameSubmit.addEventListener('click', function() {
-            const value = nicknameInput.value.trim();
-            if (value) {
-                apelido = value;
-                nicknameSubmit.disabled = true;
-                nicknameSubmit.textContent = 'Conectando...';
-                socket.emit('definirApelido', apelido);
-            }
-        });
+        // Função assíncrona para gerenciar a entrada do apelido via prompt
+        async function getNickname() {
+            let nicknameIsValid = false;
+            let currentNickname = '';
 
-        // Ouvinte para quando o servidor aceita o apelido
-        socket.on('apelidoAceito', () => {
-            modal.classList.remove('active');
+            // Loop até que o servidor aceite um apelido
+            while (!nicknameIsValid) {
+                currentNickname = prompt("👋 Bem-vindo ao Chat!\n\nDigite seu apelido:", currentNickname);
+
+                // Se o usuário cancelar ou não digitar nada, continua no loop
+                if (!currentNickname || currentNickname.trim() === '') {
+                    continue;
+                }
+                
+                currentNickname = currentNickname.trim();
+
+                // Cria uma Promise que espera pela resposta do servidor
+                const serverValidation = new Promise((resolve) => {
+                    socket.once('apelidoAceito', () => {
+                        nicknameIsValid = true;
+                        resolve(true);
+                    });
+                    socket.once('apelidoInvalido', (errorMessage) => {
+                        alert(errorMessage);
+                        resolve(false);
+                    });
+                });
+
+                socket.emit('definirApelido', currentNickname);
+                await serverValidation; // Espera a resposta
+            }
+            
+            apelido = currentNickname;
             input.focus();
-        });
+        }
 
-        // Ouvinte para quando o servidor rejeita o apelido
-        socket.on('apelidoInvalido', (errorMessage) => {
-            alert(errorMessage); // Mostra o erro para o usuário
-            nicknameSubmit.disabled = false;
-            nicknameSubmit.textContent = 'Entrar';
-        });
-
-        nicknameInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                nicknameSubmit.click();
-            }
-        });
-
-        // Foco no input do modal ao carregar
-        setTimeout(() => nicknameInput.focus(), 100);
+        // Inicia o processo para obter o apelido assim que o script carrega
+        getNickname();
 
         // Envio de mensagem
         form.addEventListener('submit', function(e) {
