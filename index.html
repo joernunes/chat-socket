@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat em Tempo Real</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #app-container {
+            display: flex;
+            height: 100vh;
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Chat Window */
+        #chat-window {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f8f9fa;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-header h1::before {
+            content: "💬";
+            font-size: 28px;
+        }
+
+        #messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 30px;
+            background: #ffffff;
+        }
+
+        #messages {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        #messages li {
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 70%;
+            word-wrap: break-word;
+            animation: messageSlide 0.3s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #messages li.user-message {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        #messages li.other-message {
+            background: #e9ecef;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        #messages li.system-message {
+            align-self: center;
+            background: transparent;
+            color: #6c757d;
+            font-size: 14px;
+            font-style: italic;
+            text-align: center;
+            padding: 8px;
+        }
+
+        .message-author {
+            font-weight: 600;
+            font-size: 12px;
+            margin-bottom: 4px;
+            opacity: 0.9;
+        }
+
+        /* Form */
+        #form {
+            background: white;
+            padding: 20px 30px;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        #input {
+            flex: 1;
+            border: 2px solid #e9ecef;
+            padding: 14px 20px;
+            border-radius: 25px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        #input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        #form button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        #form button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        #form button:active {
+            transform: translateY(0);
+        }
+
+        /* User List */
+        #user-list-container {
+            width: 280px;
+            background: white;
+            border-left: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-list-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            font-weight: 600;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .online-count {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+
+        #user-list {
+            list-style: none;
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        #user-list li {
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+            animation: userFade 0.3s ease-out;
+        }
+
+        @keyframes userFade {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        #user-list li:hover {
+            background: #e9ecef;
+            transform: translateX(-4px);
+        }
+
+        #user-list li::before {
+            content: "👤";
+            font-size: 18px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+            animation: modalSlide 0.3s ease-out;
+        }
+
+        @keyframes modalSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .modal-content input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-content button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-content button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            #user-list-container {
+                position: absolute;
+                right: -280px;
+                height: 100vh;
+                transition: right 0.3s ease;
+                z-index: 100;
+                box-shadow: -5px 0 15px rgba(0, 0, 0, 0.2);
+            }
+
+            #user-list-container.active {
+                right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Modal de Apelido -->
+    <div class="modal active" id="nickname-modal">
+        <div class="modal-content">
+            <h2>👋 Bem-vindo ao Chat!</h2>
+            <input type="text" id="nickname-input" placeholder="Digite seu apelido..." maxlength="20">
+            <button id="nickname-submit">Entrar</button>
+        </div>
+    </div>
+
+    <div id="app-container">
+        <div id="chat-window">
+            <div class="chat-header">
+                <h1>Chat em Tempo Real</h1>
+            </div>
+            <div id="messages-container">
+                <ul id="messages"></ul>
+            </div>
+            <form id="form">
+                <input id="input" autocomplete="off" placeholder="Digite sua mensagem...">
+                <button type="submit">Enviar</button>
+            </form>
+        </div>
+        <div id="user-list-container">
+            <div class="user-list-header">
+                Online
+                <span class="online-count" id="online-count">0</span>
+            </div>
+            <ul id="user-list"></ul>
+        </div>
+    </div>
+
+    <!-- Carrega o cliente Socket.IO de um CDN para funcionar em qualquer servidor -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        // Força a conexão com o servidor Node.js que está rodando na porta 3000
+        const socket = io('http://localhost:3000');
+        const form = document.getElementById('form');
+        const input = document.getElementById('input');
+        const messages = document.getElementById('messages');
+        const userList = document.getElementById('user-list');
+        const onlineCount = document.getElementById('online-count');
+        const modal = document.getElementById('nickname-modal');
+        const nicknameInput = document.getElementById('nickname-input');
+        const nicknameSubmit = document.getElementById('nickname-submit');
+        
+        let apelido = '';
+
+        // Entrada do apelido
+        nicknameSubmit.addEventListener('click', function() {
+            const value = nicknameInput.value.trim();
+            if (value) {
+                apelido = value;
+                socket.emit('definirApelido', apelido);
+                modal.classList.remove('active');
+                input.focus();
+            }
+        });
+
+        nicknameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                nicknameSubmit.click();
+            }
+        });
+
+        // Foco no input do modal ao carregar
+        setTimeout(() => nicknameInput.focus(), 100);
+
+        // Envio de mensagem
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (input.value.trim()) {
+                socket.emit('mensagemDoCliente', input.value);
+                input.value = '';
+            }
+        });
+
+        // Receber mensagens
+        socket.on('mensagemDoServidor', function(msg) {
+            const item = document.createElement('li');
+            
+            if (msg.includes('➡️') || msg.includes('⬅️')) {
+                item.className = 'system-message';
+                item.textContent = msg;
+            } else {
+                const colonIndex = msg.indexOf(':');
+                if (colonIndex > 0) {
+                    const author = msg.substring(0, colonIndex);
+                    const message = msg.substring(colonIndex + 1).trim();
+                    
+                    if (author === apelido) {
+                        item.className = 'user-message';
+                    } else {
+                        item.className = 'other-message';
+                        const authorSpan = document.createElement('div');
+                        authorSpan.className = 'message-author';
+                        authorSpan.textContent = author;
+                        item.appendChild(authorSpan);
+                    }
+                    
+                    const messageText = document.createElement('div');
+                    messageText.textContent = message;
+                    item.appendChild(messageText);
+                } else {
+                    item.className = 'other-message';
+                    item.textContent = msg;
+                }
+            }
+            
+            messages.appendChild(item);
+            const container = document.getElementById('messages-container');
+            container.scrollTop = container.scrollHeight;
+        });
+
+        // Atualizar lista de usuários
+        socket.on('atualizarListaUsuarios', function(users) {
+            userList.innerHTML = '';
+            onlineCount.textContent = users.length;
+            
+            users.forEach(function(user) {
+                const item = document.createElement('li');
+                item.textContent = user;
+                userList.appendChild(item);
+            });
+        });
+    </script>
+</body>
+</html>
