@@ -27,6 +27,17 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
 
+        /* Overlay para menu mobile */
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+        }
         /* Chat Window */
         #chat-window {
             flex: 1;
@@ -39,6 +50,8 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
@@ -326,6 +339,16 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
+        
+        .user-list-toggle-btn {
+            display: none; /* Oculto em telas grandes */
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            line-height: 1;
+        }
 
         .modal-content button:hover {
             transform: translateY(-2px);
@@ -334,8 +357,25 @@
 
         /* Responsive */
         @media (max-width: 768px) {
+            .chat-header {
+                padding: 15px 20px;
+            }
+            .chat-header h1 {
+                font-size: 20px;
+            }
+            .user-list-toggle-btn {
+                display: block; /* Visível em telas pequenas */
+            }
+            #messages-container {
+                padding: 15px;
+            }
+            #form {
+                padding: 10px 15px;
+            }
+
             #user-list-container {
-                position: absolute;
+                position: fixed;
+                top: 0;
                 right: -280px;
                 height: 100vh;
                 transition: right 0.3s ease;
@@ -363,6 +403,7 @@
         <div id="chat-window">
             <div class="chat-header">
                 <h1>Chat em Tempo Real</h1>
+                <button id="user-list-toggle" class="user-list-toggle-btn">☰</button>
             </div>
             <div id="messages-container">
                 <ul id="messages"></ul>
@@ -381,6 +422,9 @@
         </div>
     </div>
 
+    <!-- Overlay para fechar o menu de usuários em telas pequenas -->
+    <div id="overlay"></div>
+
     <!-- Carrega o cliente Socket.IO de um CDN para funcionar em qualquer servidor -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script>
@@ -394,6 +438,9 @@
         const modal = document.getElementById('nickname-modal');
         const nicknameInput = document.getElementById('nickname-input');
         const nicknameSubmit = document.getElementById('nickname-submit');
+        const userListContainer = document.getElementById('user-list-container');
+        const userListToggle = document.getElementById('user-list-toggle');
+        const overlay = document.getElementById('overlay');
         
         let apelido = '';
 
@@ -402,10 +449,23 @@
             const value = nicknameInput.value.trim();
             if (value) {
                 apelido = value;
+                nicknameSubmit.disabled = true;
+                nicknameSubmit.textContent = 'Conectando...';
                 socket.emit('definirApelido', apelido);
-                modal.classList.remove('active');
-                input.focus();
             }
+        });
+
+        // Ouvinte para quando o servidor aceita o apelido
+        socket.on('apelidoAceito', () => {
+            modal.classList.remove('active');
+            input.focus();
+        });
+
+        // Ouvinte para quando o servidor rejeita o apelido
+        socket.on('apelidoInvalido', (errorMessage) => {
+            alert(errorMessage); // Mostra o erro para o usuário
+            nicknameSubmit.disabled = false;
+            nicknameSubmit.textContent = 'Entrar';
         });
 
         nicknameInput.addEventListener('keypress', function(e) {
@@ -473,6 +533,26 @@
                 item.textContent = user;
                 userList.appendChild(item);
             });
+        });
+
+        // Lógica para menu responsivo
+        function closeUserList() {
+            userListContainer.classList.remove('active');
+            overlay.style.display = 'none';
+        }
+
+        userListToggle.addEventListener('click', () => {
+            userListContainer.classList.toggle('active');
+            overlay.style.display = userListContainer.classList.contains('active') ? 'block' : 'none';
+        });
+
+        overlay.addEventListener('click', closeUserList);
+
+        // Fecha o menu se a tela for redimensionada para um tamanho maior
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                closeUserList();
+            }
         });
     </script>
 </body>
